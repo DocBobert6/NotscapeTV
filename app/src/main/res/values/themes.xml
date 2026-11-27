@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.NotscapeTV" parent="Theme.Leanback">
+        <item name="android:windowBackground">#FF101826</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+    </style>
+    <style name="Theme.NotscapeTV.Player" parent="Theme.Leanback">
+        <item name="android:windowBackground">#FF000000</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+    </style>
+</resources>
