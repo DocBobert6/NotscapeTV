@@ -414,7 +414,7 @@ class PlayerActivity : AppCompatActivity() {
                 val c = choices[which]
                 trackSelector?.setParameters(
                     trackSelector!!.buildUponParameters()
-                        .setSelectionOverride(c.group, TrackSelectionOverride(c.group, listOf(c.index)))
+                        .setOverrideForType(TrackSelectionOverride(c.group.mediaTrackGroup, c.index))
                 )
             }
             .show()
@@ -439,7 +439,7 @@ class PlayerActivity : AppCompatActivity() {
                     sel.setParameters(
                         sel.buildUponParameters()
                             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
-                            .setSelectionOverride(c.group, TrackSelectionOverride(c.group, listOf(c.index)))
+                            .setOverrideForType(TrackSelectionOverride(c.group.mediaTrackGroup, c.index))
                     )
                 }
             }
@@ -468,9 +468,9 @@ class PlayerActivity : AppCompatActivity() {
             .setItems(labels.toTypedArray()) { _, which ->
                 val sel = trackSelector ?: return@setItems
                 if (which == 0) {
-                    sel.setParameters(sel.buildUponParameters().setMaxVideoHeight(Int.MAX_VALUE))
+                    sel.setParameters(sel.buildUponParameters().setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE))
                 } else {
-                    sel.setParameters(sel.buildUponParameters().setMaxVideoHeight(sorted[which - 1]))
+                    sel.setParameters(sel.buildUponParameters().setMaxVideoSize(Int.MAX_VALUE, sorted[which - 1]))
                 }
             }
             .show()

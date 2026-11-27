@@ -81,7 +81,7 @@ object NewsRepository {
         val items = ArrayList<NewsItem>()
         try {
             val parser = Xml.newPullParser()
-            parser.setFeature(Xml.FEATURE_PROCESS_NAMESPACES, false)
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
             parser.setInput(xml.byteInputStream(Charsets.UTF_8), "UTF-8")
             var event = parser.eventType
             var title: String? = null
