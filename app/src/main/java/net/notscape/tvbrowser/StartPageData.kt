@@ -1,8 +1,8 @@
 package net.notscape.tvbrowser
 
-import android.util.Xml
 import org.json.JSONObject
-import org.xmlpull.v1.XmlPullParser
+import org.w3c.dom.Element
+import javax.xml.parsers.DocumentBuilderFactory
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -80,45 +80,47 @@ object NewsRepository {
     fun parseRss(xml: String, source: String): List<NewsItem> {
         val items = ArrayList<NewsItem>()
         try {
-            val parser = Xml.newPullParser()
-            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
-            parser.setInput(xml.byteInputStream(Charsets.UTF_8), "UTF-8")
-            var event = parser.eventType
-            var title: String? = null
-            var link: String? = null
-            var pubDate: String? = null
-            var inItem = false
-            while (event != XmlPullParser.END_DOCUMENT) {
-                when (event) {
-                    XmlPullParser.START_TAG -> {
-                        when (parser.name.lowercase(Locale.US)) {
-                            "item", "entry" -> { inItem = true; title = null; link = null; pubDate = null }
-                            "title" -> if (inItem) title = parser.nextText()
-                            "link" -> if (inItem) {
-                                val href = parser.getAttributeValue(null, "href")
-                                link = href ?: parser.nextText()
-                            }
-                            "pubdate", "published", "updated" -> if (inItem) pubDate = parser.nextText()
+            // DOM parsing, not android.util.Xml: the pull parser is an
+            // Android stub that throws under plain JVM unit tests, while
+            // DocumentBuilderFactory is pure JDK and works both on the
+            // device and in unit tests.
+            val factory = DocumentBuilderFactory.newInstance()
+            factory.isNamespaceAware = false
+            runCatching { factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true) }
+            val doc = factory.newDocumentBuilder().parse(xml.byteInputStream(Charsets.UTF_8))
+            doc.documentElement.normalize()
+            for (tag in listOf("item", "entry")) {
+                val nodes = doc.getElementsByTagName(tag)
+                for (i in 0 until nodes.length) {
+                    val el = nodes.item(i) as? Element ?: continue
+                    val title = textOf(el, "title")
+                    var link = textOf(el, "link")
+                    if (link.isNullOrBlank()) {
+                        // Atom: <link href="..."/> carries no text.
+                        val linkEls = el.getElementsByTagName("link")
+                        if (linkEls.length > 0) {
+                            link = (linkEls.item(0) as? Element)?.getAttribute("href")
                         }
                     }
-                    XmlPullParser.END_TAG -> {
-                        if ((parser.name.equals("item", ignoreCase = true) ||
-                                parser.name.equals("entry", ignoreCase = true)) && inItem
-                        ) {
-                            inItem = false
-                            if (!title.isNullOrBlank() && !link.isNullOrBlank()) {
-                                items.add(NewsItem(title.trim(), link.trim(), source, (pubDate ?: "").trim()))
-                            }
-                        }
+                    val pubDate = textOf(el, "pubDate")
+                        ?: textOf(el, "published")
+                        ?: textOf(el, "updated")
+                    if (!title.isNullOrBlank() && !link.isNullOrBlank()) {
+                        items.add(NewsItem(title.trim(), link.trim(), source, (pubDate ?: "").trim()))
                     }
                 }
-                event = parser.next()
             }
         } catch (_: Exception) {
             // A broken feed returns what parsed so far (possibly nothing);
             // the caller tries the next feed.
         }
         return items
+    }
+
+    private fun textOf(el: Element, tag: String): String? {
+        val nodes = el.getElementsByTagName(tag)
+        if (nodes.length == 0) return null
+        return nodes.item(0)?.textContent?.takeIf { it.isNotBlank() }
     }
 }
 
